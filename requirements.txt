@@ -1,0 +1,13 @@
+gspread
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-generativeai
+chromadb
+feedparser
+schedule
+discord-webhook
+python-dotenv
+beautifulsoup4
+requests
+trafilatura

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+service_account.json
+data/
+assets/
+debug_log.txt
+log*.txt
+force_delivery.py
+test_*.py
+DRAFT_OUTPUT.md
