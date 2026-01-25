@@ -21,7 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install gspread google-api-python-client google-auth-httplib2 google-auth-oauthlib trafilatura newspaper3k discord-webhook python-dotenv schedule feedparser beautifulsoup4 requests chromadb google-generativeai
+          pip install gspread google-api-python-client google-auth-httplib2 google-auth-oauthlib trafilatura newspaper3k discord-webhook python-dotenv schedule feedparser beautifulsoup4 requests chromadb google-generativeai youtube-transcript-api isodate
 
       - name: Run Scheduler Logic (Force Delivery Mode)
         env:
