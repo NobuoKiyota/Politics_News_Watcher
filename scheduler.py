@@ -68,9 +68,12 @@ def task_collection():
         # Handle multiple keywords separated by commas
         keyword_list = [k.strip() for k in keyword.split(",") if k.strip()]
         
+        # Get Doc ID for Immediate Backup
+        doc_id = row.get("Google Doc ID") or row.get("Doc ID")
+
         for k_item in keyword_list:
             try:
-                job_runner.run_job(k_item, user)
+                job_runner.run_job(k_item, user, doc_id=doc_id)
             except Exception as e:
                 print(f"    Job Failed ({k_item}): {e}")
             time.sleep(2)

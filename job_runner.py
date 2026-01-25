@@ -7,8 +7,9 @@ import vector_store
 import datetime
 import os
 import sheet_logger
+import docs_manager
 
-def run_job(keyword, user_name):
+def run_job(keyword, user_name, doc_id=None):
     """
     Executes the collection job for a specific keyword and user.
     """
@@ -47,6 +48,11 @@ def run_job(keyword, user_name):
 
         local_dir = os.path.join("assets", user_name, keyword)
         os.makedirs(local_dir, exist_ok=True)
+        
+        # Define safe title and filename
+        safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).strip()
+        filename = f"{datetime.datetime.now().strftime('%Y-%m-%d').replace('-','')}_{safe_title}.txt"
+        
         local_path = os.path.join(local_dir, filename)
         
         # Simple File Existence Check
@@ -66,6 +72,10 @@ def run_job(keyword, user_name):
 
         # Log to Sheet
         sheet_logger.log_item(user_name, keyword, "News", title, link)
+        
+        # Immediate Cloud Backup (Docs)
+        if doc_id:
+            docs_manager.append_text_to_doc(doc_id, f"【News】 {title}\nLink: {link}\n(Saved locally at {filename})\n")
 
         # 4. Add to Vector Store (Do this regardless of save location if at least one succeeded)
         store.add_article(article_id, content, {"keyword": keyword, "user": user_name, "link": link})
@@ -98,6 +108,8 @@ def run_job(keyword, user_name):
         # folder_id = drive_manager.ensure_structure(user_name, keyword, datetime.datetime.now().strftime("%Y-%m-%d"))
         local_dir = os.path.join("assets", user_name, keyword)
         os.makedirs(local_dir, exist_ok=True)
+        
+        safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).strip()
         filename = f"{datetime.datetime.now().strftime('%Y-%m-%d').replace('-','')}_VIDEO_{safe_title}.txt"
         local_path = os.path.join(local_dir, filename)
 
@@ -121,6 +133,11 @@ def run_job(keyword, user_name):
         
         # Log to Sheet
         sheet_logger.log_item(user_name, keyword, "Video", title, link)
+
+        # Immediate Cloud Backup (Docs)
+        if doc_id:
+            video_report = f"【Video Analysis】 {title}\nLink: {link}\nPublished: {video['published']}\n\n[Summary]\n{summary}\n\n[Key Points]\n{key_points_str}\n"
+            docs_manager.append_text_to_doc(doc_id, video_report)
 
         v_new_count += 1
         
