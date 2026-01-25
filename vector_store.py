@@ -67,6 +67,20 @@ class NewsVectorStore:
             print(f"Vector Query Error: {e}")
             return False
 
+    def is_duplicate_id(self, article_id):
+        """
+        Check if an article ID already exists.
+        """
+        try:
+            results = self.collection.get(ids=[article_id])
+            # results['ids'] is a list of found IDs
+            if results and results['ids']:
+                return True
+            return False
+        except Exception as e:
+            print(f"Vector ID Check Error: {e}")
+            return False
+
     def add_article(self, article_id, text, metadata):
         self.collection.add(
             documents=[text],

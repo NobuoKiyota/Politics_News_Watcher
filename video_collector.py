@@ -1,108 +1,97 @@
 import os
 import datetime
-from googleapiclient.discovery import build
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
-import isodate
-
-def get_youtube_service():
-    """
-    Returns an authenticated YouTube Data API service instance.
-    Uses the same credentials logic, but requires YouTube Data API v3 enabled.
-    """
-    # Simply using the API Key for search if public data is enough, 
-    # but since we have service account logic for Sheets/Drive, 
-    # we might want to use API Key for YouTube Data API as it is simpler for search lists.
-    # However, existing config uses service account. 
-    # YouTube Data API supports API Key. Let's look for GEMINI_API_KEY? 
-    # No, usually we need a specific API Key with YouTube enabled. 
-    # Or we can use the Service Account if Domain-Wide Delegation is set, but that's complex.
-    # EASIEST: Use the GEMINI_API_KEY if it is a general "Google Cloud API Key" that has YouTube enabled.
-    # If not, user needs to enable it.
-    
-    api_key = os.getenv("GEMINI_API_KEY") # Asking user to ensure this key has YouTube Data API enabled.
-    if not api_key:
-        print("Error: GEMINI_API_KEY not found for YouTube API.")
-        return None
-        
-    return build('youtube', 'v3', developerKey=api_key)
+import yt_dlp
 
 def search_videos(keyword, max_results=5):
     """
-    Search for recent videos related to the keyword.
+    Search for recent videos related to the keyword using yt-dlp.
+    Removes dependency on YouTube Data API.
     """
-    youtube = get_youtube_service()
-    if not youtube:
-        return []
-
     print(f"Searching YouTube for: {keyword}...")
     
+    # yt-dlp options for metadata search
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True,  # robust and fast, gets metadata without downloading
+        'noplaylist': True,
+    }
+    
     try:
-        # Calculate time 24 hours ago (RFC 3339 formatted)
-        published_after = (datetime.datetime.utcnow() - datetime.timedelta(days=1)).isoformat() + "Z"
-        
-        request = youtube.search().list(
-            part="snippet",
-            q=keyword,
-            type="video",
-            order="date",
-            publishedAfter=published_after,
-            maxResults=max_results,
-            relevanceLanguage="ja",
-            regionCode="JP"
-        )
-        response = request.execute()
-        
-        videos = []
-        for item in response.get("items", []):
-            video_id = item["id"]["videoId"]
-            title = item["snippet"]["title"]
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Search query: ytsearchN:keyword
+            # Note: sorting by date in ytsearch is not directly strictly supported in string format 
+            # as easily as API, but ytsearch usually gives relevant results.
+            query = f"ytsearch{max_results}:{keyword}"
+            result = ydl.extract_info(query, download=False)
             
-            # Simple check to try and avoid Shorts (API doesn't strictly filter them in search easily without duration)
-            # We will fetch details to check duration if strict filtering is needed, but for now let's just grab ID.
+            videos = []
+            if 'entries' in result:
+                for item in result['entries']:
+                    title = item.get('title')
+                    video_id = item.get('id')
+                    
+                    # yt-dlp sometimes returns slightly different structures depending on version
+                    # But flat extraction usually gives these standard keys.
+                    
+                    upload_date = item.get('upload_date') # YYYYMMDD
+                    
+                    # Format date
+                    published = upload_date
+                    if upload_date and len(upload_date) == 8:
+                        published = f"{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}"
+                    
+                    if not video_id:
+                        continue
+
+                    videos.append({
+                        "id": video_id,
+                        "title": title,
+                        "link": f"https://www.youtube.com/watch?v={video_id}",
+                        "published": published,
+                        "channel": item.get('uploader')
+                    })
+            return videos
             
-            videos.append({
-                "id": video_id,
-                "title": title,
-                "link": f"https://www.youtube.com/watch?v={video_id}",
-                "published": item["snippet"]["publishedAt"],
-                "channel": item["snippet"]["channelTitle"]
-            })
-            
-        return videos
-        
     except Exception as e:
-        print(f"YouTube Search Error: {e}")
+        print(f"YouTube Search Error (yt-dlp): {e}")
         return []
 
-def get_transcript(video_id):
+def download_audio(video_id, output_dir="temp_audio"):
     """
-    Fetches the transcript for a video. 
-    Prioritizes: Manual Japanese -> Auto Japanese.
+    Downloads the audio of a video using yt-dlp.
+    Returns the path to the downloaded file.
     """
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    print(f"DEBUG: Downloading audio for {video_id}...")
+    
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # yt-dlp options for best audio, compatible with Gemini (mp3/m4a/aac)
+    # We'll target m4a (aac) or mp3 which are standard.
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': f'{output_dir}/%(id)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3', 
+            'preferredquality': '192',
+        }],
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
-        # Try to find a manually created Japanese transcript
-        try:
-            transcript = transcript_list.find_manually_created_transcript(['ja'])
-        except NoTranscriptFound:
-            # Fallback to auto-generated Japanese transcript
-            try:
-                transcript = transcript_list.find_generated_transcript(['ja'])
-            except NoTranscriptFound:
-                print(f"No Japanese transcript found for {video_id}")
-                return None
-        
-        # Fetch the actual transcript data
-        transcript_data = transcript.fetch()
-        
-        # Combine text
-        full_text = " ".join([t['text'] for t in transcript_data])
-        return full_text
-
-    except (TranscriptsDisabled, NoTranscriptFound):
-        print(f"Transcripts disabled or not found for {video_id}")
-        return None
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+            
+        # The file will be video_id.mp3
+        file_path = os.path.join(output_dir, f"{video_id}.mp3")
+        if os.path.exists(file_path):
+            return file_path
+        else:
+             print(f"DEBUG: Download finished but file not found: {file_path}")
+             return None
+             
     except Exception as e:
-        print(f"Error fetching transcript for {video_id}: {e}")
+        print(f"Error downloading audio for {video_id}: {e}")
         return None

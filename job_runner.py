@@ -6,6 +6,7 @@ import drive_manager
 import vector_store
 import datetime
 import os
+import sheet_logger
 
 def run_job(keyword, user_name):
     """
@@ -39,35 +40,32 @@ def run_job(keyword, user_name):
             skipped_count += 1
             continue
             
-        # 3. Save to Drive
-        # Folder structure: [Root]/[User]/[Keyword]/[YYYY-MM]
-        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-        folder_id = drive_manager.ensure_structure(user_name, keyword, date_str)
+        # [Local Priority Mode]
+        # Drive Upload Disabled due to Quota limits. Use Docs/Sheets for cloud access.
+        # folder_id = drive_manager.ensure_structure(user_name, keyword, date_str)
+        # if drive_manager.check_file_exists(folder_id, filename): ...
+
+        local_dir = os.path.join("assets", user_name, keyword)
+        os.makedirs(local_dir, exist_ok=True)
+        local_path = os.path.join(local_dir, filename)
         
-        # File name: YYYYMMDD_Title.txt
-        safe_title = "".join([c for c in title if c.isalnum() or c in " -_"]).strip()[:50]
-        filename = f"{date_str.replace('-','')}_{safe_title}.txt"
-        
-        # STATELESS DEDUPLICATION: Check if file exists in Drive
-        if drive_manager.check_file_exists(folder_id, filename):
-             print(f"  [Skip] Drive Duplicate: {filename}")
+        # Simple File Existence Check
+        if os.path.exists(local_path):
+             print(f"  [Skip] Local Duplicate: {filename}")
              skipped_count += 1
              continue
-             
+
         file_content = f"Title: {title}\nLink: {link}\nPublished: {item['published']}\n\n{content}"
         
         try:
-            drive_manager.upload_text_file(folder_id, filename, file_content)
-            print(f"  [Saved to Drive] {filename}")
+             with open(local_path, "w", encoding="utf-8") as f:
+                 f.write(file_content)
+             print(f"  [Saved Locally] {local_path}")
         except Exception as e:
-            print(f"  [Drive Error] Failed to upload {filename}: {e}")
-            # Fallback to local
-            local_dir = os.path.join("assets", user_name, keyword)
-            os.makedirs(local_dir, exist_ok=True)
-            local_path = os.path.join(local_dir, filename)
-            with open(local_path, "w", encoding="utf-8") as f:
-                f.write(file_content)
-            print(f"  [Saved Locally] {local_path}")
+             print(f"  [Error] Failed to save locally: {e}")
+
+        # Log to Sheet
+        sheet_logger.log_item(user_name, keyword, "News", title, link)
 
         # 4. Add to Vector Store (Do this regardless of save location if at least one succeeded)
         store.add_article(article_id, content, {"keyword": keyword, "user": user_name, "link": link})
@@ -77,7 +75,7 @@ def run_job(keyword, user_name):
 
     # 5. Collect & Process Videos
     print(f"--- Starting Video Collection: {keyword} ---")
-    video_list = video_collector.search_videos(keyword)
+    video_list = video_collector.search_videos(keyword, max_results=10)
     print(f"Found {len(video_list)} videos.")
     
     v_new_count = 0
@@ -96,57 +94,34 @@ def run_job(keyword, user_name):
              pass
         
         # Stateless Dedupe
-        folder_id = drive_manager.ensure_structure(user_name, keyword, datetime.datetime.now().strftime("%Y-%m-%d"))
-        safe_title = "".join([c for c in title if c.isalnum() or c in " -_"]).strip()[:50]
+        # [Local Priority Mode]
+        # folder_id = drive_manager.ensure_structure(user_name, keyword, datetime.datetime.now().strftime("%Y-%m-%d"))
+        local_dir = os.path.join("assets", user_name, keyword)
+        os.makedirs(local_dir, exist_ok=True)
         filename = f"{datetime.datetime.now().strftime('%Y-%m-%d').replace('-','')}_VIDEO_{safe_title}.txt"
-        
-        if drive_manager.check_file_exists(folder_id, filename):
-             print(f"  [Skip] Drive Duplicate (Video): {filename}")
+        local_path = os.path.join(local_dir, filename)
+
+        if os.path.exists(local_path):
+             print(f"  [Skip] Local Duplicate (Video): {filename}")
              v_skipped_count += 1
              continue
 
-        # Fetch Transcript
-        print(f"  Processing Video: {title}")
-        raw_transcript = video_collector.get_transcript(video_id)
-        
-        if not raw_transcript:
-            print("    No transcript found.")
-            continue
-            
-        # Process with Gemini (Fix typos & Summarize)
-        processed_data = processor.process_video_transcript(raw_transcript, title)
-        cleaned_transcript = processed_data.get("cleaned_transcript", "")
-        summary = processed_data.get("summary", "")
-        
-        if not cleaned_transcript:
-            print("    Failed to process transcript.")
-            continue
-            
-        # Save to Drive
-        file_content = f"Title: {title}\nLink: {link}\nPublished: {video['published']}\nType: YouTube Video\n\n## AI Summary\n{summary}\n\n## Transcript (Corrected)\n{cleaned_transcript}"
+        # Save to Drive -> Disabled / Local Only
+        key_points_str = "\n".join([f"- {p}" for p in key_points])
+        file_content = f"Title: {title}\nLink: {link}\nPublished: {video['published']}\nType: YouTube Video (Gemini Audio Analysis)\n\n## Gemini Audio Summary\n{summary}\n\n## Key Points\n{key_points_str}"
         
         try:
-            drive_manager.upload_text_file(folder_id, filename, file_content)
-            print(f"  [Saved Video to Drive] {filename}")
+             with open(local_path, "w", encoding="utf-8") as f:
+                 f.write(file_content)
+             print(f"  [Saved Video Analysis Locally] {local_path}")
         except Exception as e:
-             # Fallback
-            local_dir = os.path.join("assets", user_name, keyword)
-            os.makedirs(local_dir, exist_ok=True)
-            local_path = os.path.join(local_dir, filename)
-            with open(local_path, "w", encoding="utf-8") as f:
-                f.write(file_content)
-            print(f"  [Saved Video Locally] {local_path}")
+             print(f"  [Error] Failed to save video locally: {e}")
             
-        # Add Summary to Vector Store (We use summary for semantic search/report generation context)
-        # We store the SUMMARY and Transcript? Or just Summary?
-        # If we want the final report to include this info, the summarizer needs to see it.
-        # The summarizer pulls from `vector_store` usually? Or does `job_runner` return something?
-        # `job_runner` doesn't return anything. `scheduler.py` calls `run_job`.
-        # Wait, `scheduler.py` calls `run_job`, but `run_job` saves to Drive/VectorStore.
-        # Then `scheduler.py` calls `processor.generate_intermediate_draft`?
-        # Let's check `scheduler.py` logic.
+        store.add_article(video_id, summary + "\n\n" + key_points_str, {"keyword": keyword, "user": user_name, "link": link})
         
-        store.add_article(video_id, summary + "\n\n" + cleaned_transcript[:1000], {"keyword": keyword, "user": user_name, "link": link})
+        # Log to Sheet
+        sheet_logger.log_item(user_name, keyword, "Video", title, link)
+
         v_new_count += 1
         
     print(f"Video Job Complete. New: {v_new_count}, Skipped: {v_skipped_count}")

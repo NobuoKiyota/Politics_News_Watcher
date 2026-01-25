@@ -2,6 +2,7 @@ import google.generativeai as genai
 import config
 import os
 import drive_manager
+import time
 
 # Configure Gemini
 genai.configure(api_key=config.GEMINI_API_KEY)
@@ -14,7 +15,7 @@ def generate_intermediate_draft(articles, keyword):
     if not articles:
         return "No articles found."
 
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-flash-latest')
     
     # Construct context
     context = ""
@@ -42,7 +43,7 @@ def generate_final_report(drafts_content, user_tone="標準"):
     """
     Generate final report from drafts.
     """
-    model = genai.GenerativeModel('gemini-1.5-pro')
+    model = genai.GenerativeModel('gemini-flash-latest')
     
     prompt = f"""
     あなたは「公平・中立」を旨とする、優秀なプロの政治担当記者です。
@@ -63,48 +64,58 @@ def generate_final_report(drafts_content, user_tone="標準"):
     response = model.generate_content(prompt)
     return response.text
 
-def process_video_transcript(transcript_text, title):
+def process_video_audio(audio_path, title):
     """
-    Corrects typos/misconversions in the transcript and generates a summary.
-    Returns a dictionary with 'cleaned_transcript' and 'summary'.
+    Uploads audio to Gemini, waits for processing, and generates a summary.
+    Returns a dictionary with 'summary' and 'key_points'.
     """
-    if not transcript_text:
-        return {"cleaned_transcript": "", "summary": ""}
+    if not audio_path or not os.path.exists(audio_path):
+        return {"summary": "Audio file not found.", "key_points": []}
 
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    
-    # Prompt for correction and summarization
-    prompt = f"""
-    あなたは優秀な編集者・校正者です。
-    以下のテキストはYouTube動画の自動生成字幕（日本語）です。
-    
-    【動画タイトル】
-    {title}
-    
-    【タスク】
-    1. **誤字脱字・誤変換の修正**: 音声認識特有の誤り（同音異義語など）を文脈から判断して修正し、読みやすい日本語に整形してください。
-    2. **要約の作成**: 動画の内容をニュース記事として使えるように、重要ポイントを箇条書きで要約してください。
-    
-    【出力形式】
-    以下のJSON形式のみを出力してください。Markdownのコードブロックは不要です。
-    {{
-        "cleaned_transcript": "修正後の全文...",
-        "summary": "要約テキスト..."
-    }}
-
-    【対象テキスト】
-    {transcript_text[:10000]} 
-    """ 
-    # Limit input to avoid token limits if transcript is huge, though 1.5-flash has large context. 
-    # 10k chars is safe for now.
-    
+    print(f"DEBUG: Uploading audio {audio_path} to Gemini...")
     try:
-        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+        # Upload the file
+        audio_file = genai.upload_file(path=audio_path, mime_type="audio/mp3")
+        
+        # Wait for processing
+        print(f"DEBUG: Waiting for audio processing...")
+        while audio_file.state.name == "PROCESSING":
+            time.sleep(2)
+            audio_file = genai.get_file(audio_file.name)
+            
+        if audio_file.state.name == "FAILED":
+            print("DEBUG: Gemini Audio Processing Failed.")
+            return {"summary": "Audio processing failed.", "key_points": []}
+            
+        print(f"DEBUG: Audio Ready. Generating content...")
+        
+        model = genai.GenerativeModel('gemini-flash-latest')
+        
+        prompt = f"""
+        あなたは政治ニュースの分析官です。
+        以下の音声ファイル（動画タイトル: {title}）を聴取し、詳細なレポートを作成してください。
+        
+        【タスク】
+        1. **内容の完全な理解**: 音声を最初から最後まで聞き取り、議論の流れや発言の意図を正確に把握してください。
+        2. **詳細な要約**: ニュース記事として成立するレベルで、誰が、いつ、何を、どのように発言したか（5W1H）を具体的に記述してください。
+        3. **重要発言の抜粋**: キーとなる発言は「」で引用し、誰の発言かを明記してください。
+        
+        【出力形式】
+        以下のJSON形式のみを出力してください。
+        {{
+            "summary": "ニュース記事形式の詳細な要約テキスト（400文字以上 recommended）...",
+            "key_points": ["重要な事実1", "重要な事実2", "重要な事実3"]
+        }}
+        """
+        
+        response = model.generate_content([prompt, audio_file], generation_config={"response_mime_type": "application/json"})
+        
         import json
         return json.loads(response.text)
+        
     except Exception as e:
-        print(f"Gemini Transcript Error: {e}")
-        return {"cleaned_transcript": transcript_text, "summary": "Error in processing."}
+        print(f"Gemini Audio Processing Error: {e}")
+        return {"summary": f"Error: {e}", "key_points": []}
 
 if __name__ == "__main__":
     # Test

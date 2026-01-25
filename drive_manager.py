@@ -29,7 +29,18 @@ def get_or_create_folder(folder_name, parent_id=None):
             file_metadata['parents'] = [parent_id]
         
         file = service.files().create(body=file_metadata, fields='id').execute()
-        return file.get('id')
+        folder_id = file.get('id')
+        
+        # Grant permission to Main User
+        try:
+            service.permissions().create(
+                fileId=folder_id,
+                body={'role': 'writer', 'type': 'user', 'emailAddress': config.MAIN_USER_EMAIL},
+                fields='id'
+            ).execute()
+        except: pass
+        
+        return folder_id
 
 def upload_text_file(folder_id, filename, content):
     service = get_drive_service()
@@ -110,3 +121,35 @@ def ensure_structure(user_name, keyword, date_str):
     ym_sub_id = get_or_create_folder(ym, parent_id=keyword_id)
     
     return ym_sub_id
+
+def transfer_file_ownership(file_id, email_address):
+    """
+    Transfers ownership of a file to the specified email address.
+    Note: detailed permissions might be needed.
+    """
+    service = get_drive_service()
+    try:
+        # 1. Grant Writer permission first (sometimes required before ownership transfer)
+        # Actually for ownership transfer, we usually add permission with role='owner'.
+        # But for consumer gmail, sometimes we can only do valid transfers if in same domain.
+        # Let's try adding owner permission directly.
+        
+        permission_body = {
+            'role': 'owner',
+            'type': 'user',
+            'emailAddress': email_address
+        }
+        # transferOwnership=True is required for changing owner.
+        service.permissions().create(
+            fileId=file_id,
+            body=permission_body,
+            transferOwnership=True,
+            emailMessage="Automatically transferring file ownership to main account.",
+            fields='id'
+        ).execute()
+        
+        print(f"  [Drive] Transferred ownership of {file_id} to {email_address}")
+        return True
+    except Exception as e:
+        print(f"  [Drive Transfer Error] Failed to transfer {file_id}: {e}")
+        return False

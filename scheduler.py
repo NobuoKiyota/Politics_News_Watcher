@@ -7,6 +7,7 @@ import collector
 import processor
 import job_runner
 import discord_bot
+import docs_manager
 
 # Cache for jobs
 sheet_cache = {
@@ -137,6 +138,17 @@ def task_delivery():
                         final_report = processor.generate_final_report(draft)
                         print("  Sending to Discord...")
                         discord_bot.send_report(discord_url, final_report)
+                        
+                        # Google Docs Integration
+                        doc_id = row.get("Google Doc ID") or row.get("Doc ID")
+                        if doc_id:
+                            print(f"  Appending to Google Doc: {doc_id}")
+                            docs_success = docs_manager.append_daily_summary(doc_id, final_report)
+                            if docs_success:
+                                print("    -> Docs Append Success")
+                            else:
+                                print("    -> Docs Append Failed")
+                                
                         processed = True
                     except Exception as e:
                         print(f"    Processing Error: {e}")
