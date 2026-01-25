@@ -16,9 +16,9 @@ name: Politics News Watcher Scheduler
 
 on:
   schedule:
-    # 1時間ごとに実行 (毎時0分)
+    # 毎時0分に実行
     - cron: '0 * * * *'
-  workflow_dispatch: # 手動実行ボタンも有効化
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -35,20 +35,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install gspread google-api-python-client google-auth-httplib2 google-auth-oauthlib trafilatura newspaper3k discord-webhook python-dotenv schedule feedparser beautifulsoup4 requests chromadb google-generativeai
 
-      - name: Run Job Runner (Collection & Delivery)
+      - name: Run Scheduler Logic (Force Delivery Mode)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # サービスアカウントキーの中身をGithub Secretsに登録する必要あり
-          # ここではセキュリティ上、Base64エンコードしたJSONを復元するなどの工夫が必要です
-          # または、force_delivery.py のような「一括実行スクリプト」をこのタイミングで走らせます。
         run: |
-          # サービスアカウントJSONの復元 (Secretsから)
-          echo "${{ secrets.GCP_SA_JSON }}" > service_account.json
+          # Create service_account.json from Secret
+          echo '${{ secrets.GCP_SA_JSON }}' > service_account.json
           
-          # 一括実行スクリプトを起動 (収集＆配信)
-          python force_delivery.py
+          # Run the cloud entry point
+          python cloud_run.py
 ```
 
 ## 3. GitHubへの登録手順
@@ -60,7 +57,7 @@ jobs:
    - `GCP_SA_JSON`: `service_account.json` の中身（テキスト）を丸ごとコピーして貼り付け
 
 ## 4. 運用イメージ
-これだけで、GitHubのサーバーが **「毎時0分」に自動で立ち上がり**、`force_delivery.py` を実行して、Googleニュースを収集し、レポートをDiscordに送ってくれます。
+これだけで、GitHubのサーバーが **「毎時0分」に自動で立ち上がり**、`cloud_run.py` を実行して、Googleニュースを収集し、レポートをDiscordに送ってくれます。
 あなたのPCは電源を切っていても構いません。
 
 **注意点**:

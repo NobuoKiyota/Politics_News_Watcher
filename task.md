@@ -19,4 +19,9 @@
 
 ## Phase 4: テスト・運用 (Testing & Deployment)
 - [x] 結合テスト (全フローの動作確認) <!-- id: 11 -->
-- [ ] 運用マニュアル作成 <!-- id: 12 -->
+- [x] 運用マニュアル作成 (SYSTEM_MANUAL.md) <!-- id: 12 -->
+- [x] クラウド運用ガイド作成 (GITHUB_ACTIONS_GUIDE.md) <!-- id: 13 -->
+
+## Phase 5: プロジェクト完了 (Completion)
+- [x] GitHubリポジトリへのプッシュ設定 <!-- id: 14 -->
+- [x] Secrets登録と最終確認 <!-- id: 15 -->
