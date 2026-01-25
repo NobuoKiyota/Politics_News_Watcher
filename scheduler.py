@@ -8,6 +8,7 @@ import processor
 import job_runner
 import discord_bot
 import docs_manager
+import asset_loader
 
 # Cache for jobs
 sheet_cache = {
@@ -118,13 +119,26 @@ def task_delivery():
                 all_articles = []
                 
                 for k_item in keyword_list:
+                    # 1a. Fetch Fresh Web News
                     k_articles = collector.collect_news_for_keyword(k_item)
                     all_articles.extend(k_articles)
                     time.sleep(1)
+                    
+                    # 1b. Load Local Assets (Videos + Stored News)
+                    print(f"    Loading local assets for {k_item}...")
+                    local_assets = asset_loader.load_todays_assets(user, k_item)
+                    if local_assets:
+                        print(f"    -> Found {len(local_assets)} local items.")
+                        # Merge with deduplication based on Link
+                        existing_links = {a['link'] for a in all_articles}
+                        for asset in local_assets:
+                            if asset['link'] not in existing_links:
+                                all_articles.append(asset)
+                                existing_links.add(asset['link'])
                 
                 processed = False
                 if not all_articles:
-                    print("    No articles found.")
+                    print("    No articles (fresh or local) found.")
                     # Only send "No news" if strictly required, or maybe skip?
                     # User usually prefers silence over spam if nothing happening.
                     # But let's send "Nothing found" for confirmation.
