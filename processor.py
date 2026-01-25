@@ -63,6 +63,49 @@ def generate_final_report(drafts_content, user_tone="標準"):
     response = model.generate_content(prompt)
     return response.text
 
+def process_video_transcript(transcript_text, title):
+    """
+    Corrects typos/misconversions in the transcript and generates a summary.
+    Returns a dictionary with 'cleaned_transcript' and 'summary'.
+    """
+    if not transcript_text:
+        return {"cleaned_transcript": "", "summary": ""}
+
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # Prompt for correction and summarization
+    prompt = f"""
+    あなたは優秀な編集者・校正者です。
+    以下のテキストはYouTube動画の自動生成字幕（日本語）です。
+    
+    【動画タイトル】
+    {title}
+    
+    【タスク】
+    1. **誤字脱字・誤変換の修正**: 音声認識特有の誤り（同音異義語など）を文脈から判断して修正し、読みやすい日本語に整形してください。
+    2. **要約の作成**: 動画の内容をニュース記事として使えるように、重要ポイントを箇条書きで要約してください。
+    
+    【出力形式】
+    以下のJSON形式のみを出力してください。Markdownのコードブロックは不要です。
+    {{
+        "cleaned_transcript": "修正後の全文...",
+        "summary": "要約テキスト..."
+    }}
+
+    【対象テキスト】
+    {transcript_text[:10000]} 
+    """ 
+    # Limit input to avoid token limits if transcript is huge, though 1.5-flash has large context. 
+    # 10k chars is safe for now.
+    
+    try:
+        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+        import json
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"Gemini Transcript Error: {e}")
+        return {"cleaned_transcript": transcript_text, "summary": "Error in processing."}
+
 if __name__ == "__main__":
     # Test
     sample_articles = [

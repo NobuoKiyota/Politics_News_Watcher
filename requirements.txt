@@ -11,3 +11,5 @@ python-dotenv
 beautifulsoup4
 requests
 trafilatura
+youtube-transcript-api
+isodate
