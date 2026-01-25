@@ -3,6 +3,7 @@ import urllib.parse
 import trafilatura
 import hashlib
 import time
+import url_decoder
 
 def get_news_rss(keyword, when='1d'):
     """
@@ -25,6 +26,9 @@ def extract_content(url):
     Extract main text content from a URL using Trafilatura.
     """
     try:
+        # Decode Google News URL first
+        url = url_decoder.decode_google_news_url(url)
+        
         # Use requests with headers to mimic browser and follow redirects
         import requests
         headers = {
