@@ -9,3 +9,8 @@ log*.txt
 force_delivery.py
 test_*.py
 DRAFT_OUTPUT.md
+json/
+*.json
+!db.json
+!news_history.json
+GOOGLE_CLOUD_SETUP.md

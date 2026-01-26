@@ -9,12 +9,14 @@ import job_runner
 import discord_bot
 import docs_manager
 import asset_loader
+import sheet_logger
 
 # Cache for jobs
 sheet_cache = {
     "records": [],
     "worksheet_obj": None,
-    "last_updated": None
+    "last_updated": None,
+    "processed_urls": set()
 }
 
 def get_sheet_records():
@@ -41,7 +43,11 @@ def update_config_cache():
         sheet_cache["records"] = records
         sheet_cache["worksheet_obj"] = ws
         sheet_cache["last_updated"] = datetime.datetime.now()
-        print(f"  -> Cache Updated. Loaded {len(records)} active jobs.")
+        
+        # Update URL Cache for Deduplication
+        p_urls = sheet_logger.get_processed_urls()
+        sheet_cache["processed_urls"] = p_urls
+        print(f"  -> Cache Updated. Loaded {len(records)} active jobs and {len(p_urls)} processed URLs.")
     else:
         print("  -> Failed to update cache. Keeping old config.")
 
@@ -70,10 +76,19 @@ def task_collection():
         
         # Get Doc ID for Immediate Backup
         doc_id = row.get("Google Doc ID") or row.get("Doc ID")
+        
+        # Get Context Doc ID (Optional)
+        ref_doc_id = row.get("Reference Doc ID") or row.get("Reference Docs") # Fallback to same Doc? No, unsafe.
+        context_text = ""
+        if ref_doc_id:
+             print(f"    Loading Context from Doc: {ref_doc_id}")
+             context_text = docs_manager.get_doc_content(ref_doc_id)
+        
+        existing_urls = sheet_cache.get("processed_urls", set())
 
         for k_item in keyword_list:
             try:
-                job_runner.run_job(k_item, user, doc_id=doc_id)
+                job_runner.run_job(k_item, user, doc_id=doc_id, ignore_urls=existing_urls, context_text=context_text)
             except Exception as e:
                 print(f"    Job Failed ({k_item}): {e}")
             time.sleep(2)

@@ -40,3 +40,25 @@ def log_item(user, keyword, item_type, title, url):
         
     except Exception as e:
         print(f"  [Logger Error] Failed to log item: {e}")
+
+def get_processed_urls():
+    """
+    Returns a set of all URLs already logged in the 'Processed_Log' sheet.
+    Used for strict deduplication to save API calls.
+    """
+    try:
+        ws = get_log_worksheet()
+        if not ws: return set()
+        
+        # URL is the 6th column
+        # Read all values in column 6
+        urls = ws.col_values(6)
+        
+        # Remove header "URL" if present
+        if urls and urls[0] == "URL":
+            urls = urls[1:]
+            
+        return set(urls)
+    except Exception as e:
+        print(f"  [Logger Error] Failed to fetch URLs: {e}")
+        return set()

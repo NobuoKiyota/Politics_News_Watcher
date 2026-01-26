@@ -64,7 +64,7 @@ def generate_final_report(drafts_content, user_tone="標準"):
     response = model.generate_content(prompt)
     return response.text
 
-def process_video_audio(audio_path, title):
+def process_video_audio(audio_path, title, context_text=""):
     """
     Uploads audio to Gemini, waits for processing, and generates a summary.
     Returns a dictionary with 'summary' and 'key_points'.
@@ -95,8 +95,12 @@ def process_video_audio(audio_path, title):
         あなたは政治ニュースの分析官です。
         以下の音声ファイル（動画タイトル: {title}）を聴取し、詳細なレポートを作成してください。
         
+        【参考情報（過去の経緯・背景）】
+        {context_text[:2000]} ... (中略)
+        
         【タスク】
         1. **内容の完全な理解**: 音声を最初から最後まで聞き取り、議論の流れや発言の意図を正確に把握してください。
+        参考情報と重複する内容は簡潔にし、**「今回の新しい発言・進展」**に焦点を当ててください。
         2. **詳細な要約**: ニュース記事として成立するレベルで、誰が、いつ、何を、どのように発言したか（5W1H）を具体的に記述してください。
         3. **重要発言の抜粋**: キーとなる発言は「」で引用し、誰の発言かを明記してください。
         

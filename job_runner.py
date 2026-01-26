@@ -9,7 +9,7 @@ import os
 import sheet_logger
 import docs_manager
 
-def run_job(keyword, user_name, doc_id=None):
+def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
     """
     Executes the collection job for a specific keyword and user.
     """
@@ -30,6 +30,12 @@ def run_job(keyword, user_name, doc_id=None):
         title = item['title']
         link = item['link']
         article_id = item['id']
+        
+        # 1b. Strict Deduplication (Log Check)
+        if ignore_urls and link in ignore_urls:
+            print(f"  [Skip] Already in Spreadsheet Log: {title[:20]}...")
+            skipped_count += 1
+            continue
         
         # 2. Check Vector Duplication
         # Threshold 0.2 means very similar. 0.3 is slightly looser.
@@ -79,6 +85,11 @@ def run_job(keyword, user_name, doc_id=None):
 
         # 4. Add to Vector Store (Do this regardless of save location if at least one succeeded)
         store.add_article(article_id, content, {"keyword": keyword, "user": user_name, "link": link})
+        
+        # Update in-memory set to prevent duplicate in same batch
+        if ignore_urls is not None:
+            ignore_urls.add(link)
+            
         new_count += 1
             
     print(f"Job Complete. New: {new_count}, Skipped: {skipped_count}")
@@ -95,6 +106,12 @@ def run_job(keyword, user_name, doc_id=None):
         video_id = video['id']
         title = video['title']
         link = video['link']
+        
+        # Strict Dedupe
+        if ignore_urls and link in ignore_urls:
+             print(f"  [Skip] Video already logs: {title[:20]}...")
+             v_skipped_count += 1
+             continue
         
         # Check duplicate (using Video ID as ID)
         if store.is_duplicate_id(video_id): # We need to ensure vector_store supports ID check or just use content check
@@ -118,6 +135,22 @@ def run_job(keyword, user_name, doc_id=None):
              v_skipped_count += 1
              continue
 
+        # Perform Analysis
+        print(f"  Processing Video: {title} ...")
+        audio_path = video_collector.download_audio(video_id)
+        if not audio_path:
+            print("  [Error] Audio Download Failed.")
+            continue
+            
+        analysis = processor.process_video_audio(audio_path, title, context_text)
+        
+        # Clean up audio
+        try: os.remove(audio_path)
+        except: pass
+        
+        summary = analysis.get("summary", "No summary.")
+        key_points = analysis.get("key_points", [])
+
         # Save to Drive -> Disabled / Local Only
         key_points_str = "\n".join([f"- {p}" for p in key_points])
         file_content = f"Title: {title}\nLink: {link}\nPublished: {video['published']}\nType: YouTube Video (Gemini Audio Analysis)\n\n## Gemini Audio Summary\n{summary}\n\n## Key Points\n{key_points_str}"
@@ -133,6 +166,8 @@ def run_job(keyword, user_name, doc_id=None):
         
         # Log to Sheet
         sheet_logger.log_item(user_name, keyword, "Video", title, link)
+        if ignore_urls is not None:
+            ignore_urls.add(link)
 
         # Immediate Cloud Backup (Docs)
         if doc_id:

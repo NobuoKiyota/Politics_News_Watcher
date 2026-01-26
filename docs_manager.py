@@ -65,3 +65,24 @@ def append_daily_summary(doc_id, summary_text, date_str=None):
     full_content = header + summary_text + "\n"
     
     return append_text_to_doc(doc_id, full_content)
+
+def get_doc_content(doc_id):
+    """
+    Retrieves the full text content of a Google Doc.
+    """
+    service = get_docs_service()
+    if not service: return ""
+    
+    try:
+        doc = service.documents().get(documentId=doc_id).execute()
+        content = doc.get('body').get('content')
+        full_text = ""
+        for element in content:
+            if 'paragraph' in element:
+                for run in element['paragraph']['elements']:
+                    if 'textRun' in run:
+                       full_text += run['textRun']['content']
+        return full_text
+    except Exception as e:
+        print(f"Error reading doc {doc_id}: {e}")
+        return ""
