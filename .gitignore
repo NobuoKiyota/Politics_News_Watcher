@@ -14,3 +14,4 @@ json/
 !db.json
 !news_history.json
 GOOGLE_CLOUD_SETUP.md
+*.mp3

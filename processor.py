@@ -15,7 +15,7 @@ def generate_intermediate_draft(articles, keyword):
     if not articles:
         return "No articles found."
 
-    model = genai.GenerativeModel('gemini-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     # Construct context
     context = ""
@@ -43,7 +43,7 @@ def generate_final_report(drafts_content, user_tone="標準"):
     """
     Generate final report from drafts.
     """
-    model = genai.GenerativeModel('gemini-flash-latest')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     prompt = f"""
     あなたは「公平・中立」を旨とする、優秀なプロの政治担当記者です。
@@ -89,7 +89,7 @@ def process_video_audio(audio_path, title, context_text=""):
             
         print(f"DEBUG: Audio Ready. Generating content...")
         
-        model = genai.GenerativeModel('gemini-flash-latest')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         あなたは政治ニュースの分析官です。

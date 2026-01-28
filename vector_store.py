@@ -15,7 +15,7 @@ class GeminiEmbeddingFunction(embedding_functions.EmbeddingFunction):
         for text in input:
             try:
                 emb = genai.embed_content(
-                    model="models/text-embedding-004",
+                    model="models/gemini-embedding-001",
                     content=text,
                     task_type="retrieval_document"
                 )['embedding']
