@@ -27,8 +27,14 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          
           # Create service_account.json from Secret
           echo '${{ secrets.GCP_SA_JSON }}' > service_account.json
+          
+          # Create cookies.txt for yt-dlp
+          if [ -n "${{ secrets.YOUTUBE_COOKIES }}" ]; then
+            echo '${{ secrets.YOUTUBE_COOKIES }}' > cookies.txt
+          fi
           
           # Run the delivery script directly (stateless run)
           # We use a modified "force_delivery"-like logic or just call scheduler tasks once?

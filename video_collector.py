@@ -87,6 +87,11 @@ def download_audio(video_id, output_dir="temp_audio"):
             }
         }
     }
+
+    # Use cookies if available (fixes "Sign in to confirm you’re not a bot")
+    if os.path.exists("cookies.txt"):
+        print("DEBUG: Using cookies.txt for authentication")
+        ydl_opts['cookiefile'] = "cookies.txt"
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
