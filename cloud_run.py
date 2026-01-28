@@ -18,7 +18,8 @@ def run_once():
     # It works fine.
     
     print("Running Delivery Phase...")
-    scheduler.task_delivery()
+    # Force delivery for Cloud Run execution (Since GHA schedule controls the time)
+    scheduler.task_delivery(force=True)
     
     print("--- Cloud Run Complete ---")
 

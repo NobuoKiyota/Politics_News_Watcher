@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 import io
 import config
 
@@ -153,3 +153,70 @@ def transfer_file_ownership(file_id, email_address):
     except Exception as e:
         print(f"  [Drive Transfer Error] Failed to transfer {file_id}: {e}")
         return False
+
+def find_folder_by_name(folder_name, parent_id):
+    """
+    Finds a specific folder by name within a parent folder.
+    Returns folder_id or None.
+    """
+    service = get_drive_service()
+    if not parent_id:
+        parent_id = config.DRIVE_ROOT_FOLDER_ID
+    
+    query = f"mimeType='application/vnd.google-apps.folder' and name='{folder_name}' and trashed=false and '{parent_id}' in parents"
+    results = service.files().list(q=query, fields="files(id, name)").execute()
+    files = results.get('files', [])
+    if files:
+        return files[0]['id']
+    return None
+
+def list_files_in_folder(folder_id):
+    """
+    Lists all non-folder files in the given folder.
+    Returns list of dicts: {'id', 'name', 'mimeType'}
+    """
+    service = get_drive_service()
+    # Query for non-folder items
+    query = f"'{folder_id}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false"
+    results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
+    return results.get('files', [])
+
+def download_file_content(file_id, mime_type=None):
+    """
+    Downloads file content. 
+    - Auto-exports Google Docs to text/plain.
+    - Reads plain text directly.
+    """
+    service = get_drive_service()
+    try:
+        content = ""
+        # Google Doc -> Export
+        if mime_type == 'application/vnd.google-apps.document':
+            request = service.files().export_media(fileId=file_id, mimeType='text/plain')
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+            content = fh.getvalue().decode('utf-8')
+            
+        # Text/Other -> Get Media
+        else:
+            request = service.files().get_media(fileId=file_id)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+            
+            # Try decode (utf-8)
+            try:
+                content = fh.getvalue().decode('utf-8')
+            except:
+                # Fallback implementation for binary or other encoding if needed
+                pass
+                
+        return content
+    except Exception as e:
+        print(f"  [Drive Download Error] {file_id}: {e}")
+        return ""

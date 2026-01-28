@@ -60,6 +60,39 @@ def task_collection():
         
     records = sheet_cache["records"]
     
+    # [CLOUD MODE ADAPTATION]
+    # If the sheet is empty or we want to enforce specific targets for Cloud Run,
+    # we can inject them here.
+    # The user requested: "伊佐進一", "岡本三成", "斎藤鉄夫", "中道改革連合"
+    if not records:
+        print("  [Cloud Mode] Sheet empty/unavailable. Using Hardcoded Targets.")
+        records = [
+            {"利用者名": "System", "キーワード": "伊佐進一", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "岡本三成", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "斎藤鉄夫", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "中道改革連合", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+        ]
+    else:
+        # Optional: Append or Override? 
+        # For now, let's just Log that we are using Sheet.
+        # But if the user wants to SWITCH to these new keywords completely on Cloud,
+        # we might want to prioritize them.
+        # Let's add them to the list if not present, or just trust the sheet if populated.
+        # Given "PCつけない" (won't use PC), they might not update sheet easily.
+        # Let's FORCE add them for safety.
+        print("  [Cloud Mode] Injecting Priority Targets.")
+        priority_targets = [
+            {"利用者名": "System", "キーワード": "伊佐進一", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "岡本三成", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "斎藤鉄夫", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+            {"利用者名": "System", "キーワード": "中道改革連合", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+        ]
+        # Check duplication by keyword
+        existing_keys = [r.get("キーワード") for r in records]
+        for pt in priority_targets:
+            if pt["キーワード"] not in existing_keys:
+                records.append(pt)
+    
     for row in records:
         user = row.get("利用者名") or row.get("利用者")
         keyword = row.get("キーワード") or row.get(" キ ー ワ ー ド")
@@ -93,7 +126,7 @@ def task_collection():
                 print(f"    Job Failed ({k_item}): {e}")
             time.sleep(2)
 
-def task_delivery():
+def task_delivery(force=False):
     now = datetime.datetime.now()
     current_time_str = now.strftime("%H:%M")
     today_str = now.strftime("%Y-%m-%d")
@@ -126,8 +159,9 @@ def task_delivery():
         discord_url = row.get("通知先DiscordWebhook URL") or row.get("Discord")
         
         # Check timing
-        if target_time == current_time_str and last_run != today_str:
-            print(f"TRIGGER: Delivery for {user} ({keyword})")
+        # If force=True, ignore time check
+        if force or (target_time == current_time_str and last_run != today_str):
+            print(f"TRIGGER: Delivery for {user} ({keyword}) [Force: {force}]")
             
             try:
                 # 1. Report Generation Logic
@@ -142,11 +176,12 @@ def task_delivery():
                     all_articles.extend(k_articles)
                     time.sleep(1)
                     
-                    # 1b. Load Local Assets (Videos + Stored News)
-                    print(f"    Loading local assets for {k_item}...")
-                    local_assets = asset_loader.load_todays_assets(user, k_item)
+                    # 1b. Load Local & Drive Assets (Context/Materials)
+                    print(f"    Loading assets (Local + Drive) for {k_item}...")
+                    # Changed from load_todays_assets to load_assets (includes Drive)
+                    local_assets = asset_loader.load_assets(user, k_item, use_drive=True)
                     if local_assets:
-                        print(f"    -> Found {len(local_assets)} local items.")
+                        print(f"    -> Found {len(local_assets)} assets.")
                         # Merge with deduplication based on Link
                         existing_links = {a['link'] for a in all_articles}
                         for asset in local_assets:
