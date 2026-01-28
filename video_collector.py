@@ -78,6 +78,14 @@ def download_audio(video_id, output_dir="temp_audio"):
         }],
         'quiet': True,
         'no_warnings': True,
+        # Improve resistance to "Sign in to confirm you’re not a bot"
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'player_skip': ['webpage', 'configs', 'js'],
+                'innertube_client': ['android', 'web']
+            }
+        }
     }
     
     try:
