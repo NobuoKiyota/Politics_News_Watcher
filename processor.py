@@ -20,7 +20,7 @@ def generate_intermediate_draft(articles, keyword):
     # Construct context
     context = ""
     for art in articles:
-        context += f"Source: {art['link']}\nTitle: {art['title']}\nContent: {art['content'][:2000]}\n\n"
+        context += f"Source: {art['link']}\nTitle: {art['title']}\nContent: {art['content']}\n\n"
         
     prompt = f"""
     あなたは政治ニュースの分析官です。
@@ -96,7 +96,7 @@ def process_video_audio(audio_path, title, context_text=""):
         以下の音声ファイル（動画タイトル: {title}）を聴取し、詳細なレポートを作成してください。
         
         【参考情報（過去の経緯・背景）】
-        {context_text[:2000]} ... (中略)
+        {context_text}
         
         【タスク】
         1. **内容の完全な理解**: 音声を最初から最後まで聞き取り、議論の流れや発言の意図を正確に把握してください。

@@ -17,7 +17,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Data Storage
 DATA_DIR = os.path.join(BASE_DIR, 'data')
-DRIVE_ROOT_FOLDER_ID = '1hXdJUby2zyxWzzAh1WkSy6cIW4Tm95Xk'  # Shared Folder ID
+DRIVE_ROOT_FOLDER_ID = '1pOFRd9F32HUqbzzMpV1dwYuTf61LuwbG'  # Shared Folder ID
 
 # Create necessary directories
 if not os.path.exists(DATA_DIR):

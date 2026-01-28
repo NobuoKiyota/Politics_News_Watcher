@@ -47,15 +47,7 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
             skipped_count += 1
             continue
             
-        # [Local Priority Mode]
-        # Drive Upload Disabled due to Quota limits. Use Docs/Sheets for cloud access.
-        # folder_id = drive_manager.ensure_structure(user_name, keyword, date_str)
-        # if drive_manager.check_file_exists(folder_id, filename): ...
-
-        local_dir = os.path.join("assets", user_name, keyword)
-        os.makedirs(local_dir, exist_ok=True)
-        
-        # Define safe title and filename
+        # Define safe title and filename (needed for Drive check)
         safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).strip()
         filename = f"{datetime.datetime.now().strftime('%Y-%m-%d').replace('-','')}_{safe_title}.txt"
         
@@ -73,8 +65,13 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
              with open(local_path, "w", encoding="utf-8") as f:
                  f.write(file_content)
              print(f"  [Saved Locally] {local_path}")
+             
+             # Upload to Drive
+             drive_manager.upload_text_file(folder_id, filename, file_content)
+             print(f"  [Uploaded to Drive] {filename}")
+             
         except Exception as e:
-             print(f"  [Error] Failed to save locally: {e}")
+             print(f"  [Error] Failed to save locally/drive: {e}")
 
         # Log to Sheet
         sheet_logger.log_item(user_name, keyword, "News", title, link)
@@ -121,8 +118,10 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
              pass
         
         # Stateless Dedupe
-        # [Local Priority Mode]
-        # folder_id = drive_manager.ensure_structure(user_name, keyword, datetime.datetime.now().strftime("%Y-%m-%d"))
+        # [Local Priority Mode -> Hybrid Mode]
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        folder_id = drive_manager.ensure_structure(user_name, keyword, date_str)
+        
         local_dir = os.path.join("assets", user_name, keyword)
         os.makedirs(local_dir, exist_ok=True)
         
@@ -132,6 +131,12 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
 
         if os.path.exists(local_path):
              print(f"  [Skip] Local Duplicate (Video): {filename}")
+             v_skipped_count += 1
+             continue
+             
+        # Check Drive (Optional, but good for consistency)
+        if drive_manager.check_file_exists(folder_id, filename):
+             print(f"  [Skip] Drive Duplicate (Video): {filename}")
              v_skipped_count += 1
              continue
 
@@ -159,8 +164,13 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
              with open(local_path, "w", encoding="utf-8") as f:
                  f.write(file_content)
              print(f"  [Saved Video Analysis Locally] {local_path}")
+             
+             # Upload to Drive
+             drive_manager.upload_text_file(folder_id, filename, file_content)
+             print(f"  [Uploaded Video to Drive] {filename}")
+             
         except Exception as e:
-             print(f"  [Error] Failed to save video locally: {e}")
+             print(f"  [Error] Failed to save video locally/drive: {e}")
             
         store.add_article(video_id, summary + "\n\n" + key_points_str, {"keyword": keyword, "user": user_name, "link": link})
         
