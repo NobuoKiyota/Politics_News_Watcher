@@ -23818,3 +23818,101 @@ ERROR: RETRY LIMIT EXCEEDED.
    Speed :              762.287 MegaBytes/min.
    Ended : 2026128 1:00:17
 
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows                              
+-------------------------------------------------------------------------------
+
+  Started : 2026129 1:00:02
+   Source : F:\Politics_News_Watcher\
+     Dest = J:\マイドライブ\Politics_News_Watcher_Assets\
+
+    Files : *.*
+	    
+Exc Files : *.pyc
+	    
+ Exc Dirs : .git
+	    .github
+	    __pycache__
+	    venv
+	    .venv
+	    
+  Options : *.* /FFT /TEE /S /E /DCOPY:D /COPY:DT /PURGE /MIR /NP /XO /R:3 /W:5 
+
+------------------------------------------------------------------------------
+
+	                  65	F:\Politics_News_Watcher\
+	  *EXTRA File 		     246	desktop.ini
+	    Newer     		     212	.gitignore
+	    Newer     		   1.2 m	backup_log.txt
+	    New File  		     446	check_available_models.py
+	    New File  		    2719	error.txt
+	    New File  		    1156	models.txt
+	    Newer     		    6186	processor.py
+	    Newer     		     712	test_genai.py
+	    Newer     		    3887	vector_store.py
+	    New File  		     367	verify_ytdlp_fix.py
+	    Newer     		    3896	video_collector.py
+	                   0	F:\Politics_News_Watcher\assets\
+	  *EXTRA File 		     246	desktop.ini
+	                   0	F:\Politics_News_Watcher\assets\NobuoKiyota\
+	  *EXTRA File 		     246	desktop.ini
+	                   3	F:\Politics_News_Watcher\assets\NobuoKiyota\伊佐進一\
+	  *EXTRA File 		     246	desktop.ini
+	                   9	F:\Politics_News_Watcher\assets\NobuoKiyota\石破茂\
+	  *EXTRA File 		     246	desktop.ini
+	                   0	F:\Politics_News_Watcher\assets\TestUser\
+	  *EXTRA File 		     246	desktop.ini
+	                   8	F:\Politics_News_Watcher\assets\TestUser\岸田文雄\
+	  *EXTRA File 		     246	desktop.ini
+	                   0	F:\Politics_News_Watcher\assets\管理者\
+	  *EXTRA File 		     246	desktop.ini
+	                   8	F:\Politics_News_Watcher\assets\管理者\中道改革連合\
+	  *EXTRA File 		     246	desktop.ini
+	  *EXTRA File 		     218	Keywordまとめ(LM).gdoc
+	                  10	F:\Politics_News_Watcher\assets\管理者\岡本三成\
+	  *EXTRA File 		     246	desktop.ini
+	    New File  		    3759	20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+2026/01/29 01:00:02 ERROR 87 (0x00000057) Copying File F:\Politics_News_Watcher\assets\管理者\岡本三成\20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+The parameter is incorrect.
+Waiting 5 seconds... Retrying...
+	    New File  		    3759	20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+2026/01/29 01:00:07 ERROR 87 (0x00000057) Copying File F:\Politics_News_Watcher\assets\管理者\岡本三成\20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+The parameter is incorrect.
+Waiting 5 seconds... Retrying...
+	    New File  		    3759	20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+2026/01/29 01:00:12 ERROR 87 (0x00000057) Copying File F:\Politics_News_Watcher\assets\管理者\岡本三成\20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+The parameter is incorrect.
+Waiting 5 seconds... Retrying...
+	    New File  		    3759	20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+2026/01/29 01:00:17 ERROR 87 (0x00000057) Copying File F:\Politics_News_Watcher\assets\管理者\岡本三成\20260127_VIDEO_公明党の新たな闘い岡本三成政調会長が語るジャパンファンド創設の狙い公明党は連立離脱ではなく下野した野党としての政策実現3000人の地方議員ネットワークと次期衆院選戦略は選挙ドットコム.txt
+The parameter is incorrect.
+
+ERROR: RETRY LIMIT EXCEEDED.
+
+	                   0	F:\Politics_News_Watcher\data\
+	  *EXTRA File 		     246	desktop.ini
+	                   1	F:\Politics_News_Watcher\data\chroma_db\
+	  *EXTRA File 		     246	desktop.ini
+	                   4	F:\Politics_News_Watcher\data\chroma_db\50fcf703-9ff6-457f-980b-9a60b1a3f5c6\
+	  *EXTRA File 		     246	desktop.ini
+	                   0	F:\Politics_News_Watcher\downloaded_assets\
+	  *EXTRA File 		     246	desktop.ini
+	                   2	F:\Politics_News_Watcher\temp_audio\
+	  *EXTRA File 		     246	desktop.ini
+	  New Dir          1	F:\Politics_News_Watcher\test_dl_output\
+	    New File  		   7.4 m	_Q3XGrYkGoQ.mp3
+
+------------------------------------------------------------------------------
+
+               Total    Copied   Skipped  Mismatch    FAILED    Extras
+    Dirs :        20         1        19         0         0         0
+   Files :       111        11        99         0         1        16
+   Bytes :   50.03 m    8.76 m   41.27 m         0     3.6 k     3.8 k
+   Times :   0:00:15   0:00:00                       0:00:15   0:00:00
+
+
+   Speed :           30,623,073 Bytes/sec.
+   Speed :            1,752.266 MegaBytes/min.
+   Ended : 2026129 1:00:17
+

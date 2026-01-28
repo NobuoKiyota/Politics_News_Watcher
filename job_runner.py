@@ -48,6 +48,15 @@ def run_job(keyword, user_name, doc_id=None, ignore_urls=None, context_text=""):
             continue
             
         # Define safe title and filename (needed for Drive check)
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        
+        # Ensure Drive Structure exists (Get Folder ID)
+        folder_id = drive_manager.ensure_structure(user_name, keyword, date_str)
+        
+        # Local Directory
+        local_dir = os.path.join("data", user_name, keyword)
+        os.makedirs(local_dir, exist_ok=True)
+
         safe_title = "".join([c for c in title if c.isalnum() or c in (' ', '-', '_')]).strip()
         filename = f"{datetime.datetime.now().strftime('%Y-%m-%d').replace('-','')}_{safe_title}.txt"
         

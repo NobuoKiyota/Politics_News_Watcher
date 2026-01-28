@@ -1,0 +1,15 @@
+.gcloudignore
+.git
+.gitignore
+__pycache__/
+*.pyc
+.env
+data/
+assets/
+debug_log.txt
+log*.txt
+force_delivery.py
+test_*.py
+DRAFT_OUTPUT.md
+*.mp3
+node_modules/
