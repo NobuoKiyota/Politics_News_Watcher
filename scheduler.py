@@ -61,37 +61,26 @@ def task_collection():
     records = sheet_cache["records"]
     
     # [CLOUD MODE ADAPTATION]
-    # If the sheet is empty or we want to enforce specific targets for Cloud Run,
-    # we can inject them here.
-    # The user requested: "伊佐進一", "岡本三成", "斎藤鉄夫", "中道改革連合"
-    if not records:
-        print("  [Cloud Mode] Sheet empty/unavailable. Using Hardcoded Targets.")
-        records = [
-            {"利用者名": "System", "キーワード": "伊佐進一", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
-            {"利用者名": "System", "キーワード": "岡本三成", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
-            {"利用者名": "System", "キーワード": "斎藤鉄夫", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
-            {"利用者名": "System", "キーワード": "中道改革連合", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
-        ]
-    else:
-        # Optional: Append or Override? 
-        # For now, let's just Log that we are using Sheet.
-        # But if the user wants to SWITCH to these new keywords completely on Cloud,
-        # we might want to prioritize them.
-        # Let's add them to the list if not present, or just trust the sheet if populated.
-        # Given "PCつけない" (won't use PC), they might not update sheet easily.
-        # Let's FORCE add them for safety.
-        print("  [Cloud Mode] Injecting Priority Targets.")
+    # If using Cloud Mode (set via Env Var), we FORCE specific targets to avoid Sheet dependency issues on GHA.
+    # Otherwise (Local), we rely on the Sheet.
+    if config.IS_CLOUD_ENV:
+        print("  [Cloud Mode] Using Hardcoded Priority Targets.")
         priority_targets = [
             {"利用者名": "System", "キーワード": "伊佐進一", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
             {"利用者名": "System", "キーワード": "岡本三成", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
             {"利用者名": "System", "キーワード": "斎藤鉄夫", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
             {"利用者名": "System", "キーワード": "中道改革連合", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
         ]
-        # Check duplication by keyword
-        existing_keys = [r.get("キーワード") for r in records]
-        for pt in priority_targets:
-            if pt["キーワード"] not in existing_keys:
-                records.append(pt)
+        # Force overwrite
+        records = priority_targets
+    
+    # [Local Mode Handling]
+    # If sheet is empty but we are Local, use a safeguard list.
+    elif not records:
+         print("  [Local Mode] Sheet appears empty. Using Safeguard Targets.")
+         records = [
+            {"利用者名": "System", "キーワード": "伊佐進一", "配信希望時間": "08:00", "Discord": config.DISCORD_WEBHOOK_URL},
+         ]
     
     for row in records:
         user = row.get("利用者名") or row.get("利用者")
